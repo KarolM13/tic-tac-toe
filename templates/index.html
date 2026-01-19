@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Kółko-Krzyżyk</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+        }
+        .container {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 90%;
+        }
+        h1 { text-align: center; margin-bottom: 30px; font-size: 2em; }
+        .status {
+            text-align: center;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+        }
+        input {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: bold;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        button:hover { background: #45a049; }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .cell {
+            aspect-ratio: 1;
+            background: rgba(255,255,255,0.2);
+            border: 3px solid rgba(255,255,255,0.4);
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .cell:hover { background: rgba(255,255,255,0.3); transform: scale(1.05); }
+        .cell.x { color: #ff6b6b; }
+        .cell.o { color: #4ecdc4; }
+        .hidden { display: none !important; }
+        .info { text-align: center; margin-top: 15px; font-size: 0.9em; opacity: 0.8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Kółko-Krzyżyk</h1>
+        
+        <div id="emailDiv">
+            <input type="text" id="nickInput" placeholder="Twój nick">
+            <input type="email" id="emailInput" placeholder="Twój email">
+            <button onclick="join()">Dołącz</button>
+        </div>
+
+        <div id="waitDiv" class="hidden">
+            <div class="status">Czekam na 2 gracza...</div>
+        </div>
+
+        <div id="gameDiv" class="hidden">
+            <div class="status" id="status"></div>
+            <div class="info" id="playersInfo" style="margin-bottom: 15px;"></div>
+            <div class="board" id="board"></div>
+            <button onclick="reset()" class="hidden" id="resetBtn">Nowa gra</button>
+        </div>
+    </div>
+
+    <script>
+        let mySymbol = null;
+        let interval = null;
+        let currentTurn = null;
+
+        async function join() {
+            const email = document.getElementById('emailInput').value;
+            const nick = document.getElementById('nickInput').value;
+            if (!email || !nick) return alert('Podaj nick i email!');
+
+            try {
+                const res = await fetch('/api/join', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({email, nick})
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    alert(err.error);
+                    return;
+                }
+
+                const data = await res.json();
+                mySymbol = data.symbol;
+                
+                document.getElementById('emailDiv').classList.add('hidden');
+                document.getElementById('waitDiv').classList.remove('hidden');
+                
+                startPolling();
+            } catch (e) {
+                alert('Błąd: ' + e);
+            }
+        }
+
+        function startPolling() {
+            interval = setInterval(updateState, 500);
+        }
+
+        async function updateState() {
+            try {
+                const res = await fetch('/api/state');
+                const state = await res.json();
+
+                if (state.started && document.getElementById('gameDiv').classList.contains('hidden')) {
+                    document.getElementById('waitDiv').classList.add('hidden');
+                    document.getElementById('gameDiv').classList.remove('hidden');
+                    createBoard();
+                }
+
+                if (state.started) {
+                    updateBoard(state.board);
+                    updateStatus(state);
+                    updatePlayers(state.nicks);
+                    currentTurn = state.turn;
+
+                    if (state.over) {
+                        clearInterval(interval);
+                        document.getElementById('resetBtn').classList.remove('hidden');
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function createBoard() {
+            const board = document.getElementById('board');
+            board.innerHTML = '';
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.onclick = () => makeMove(i);
+                board.appendChild(cell);
+            }
+        }
+
+        function updateBoard(board) {
+            const cells = document.querySelectorAll('.cell');
+            board.forEach((val, i) => {
+                cells[i].textContent = val;
+                cells[i].className = 'cell';
+                if (val === 'X') cells[i].classList.add('x');
+                if (val === 'O') cells[i].classList.add('o');
+            });
+        }
+
+        function updatePlayers(nicks) {
+            const info = document.getElementById('playersInfo');
+            info.innerHTML = `
+                <strong>X: ${nicks.X}</strong> vs <strong>O: ${nicks.O}</strong>
+            `;
+        }
+
+        function updateStatus(state) {
+            const status = document.getElementById('status');
+            
+            if (state.over) {
+                if (state.winner === 'DRAW') {
+                    status.textContent = '🤝 REMIS!';
+                } else if (state.winner === mySymbol) {
+                    status.textContent = `🎉 WYGRAŁEŚ ${state.nicks[mySymbol]} (${mySymbol})`;
+                } else {
+                    status.textContent = `😢 PRZEGRAŁEŚ! Wygrał ${state.nicks[state.winner]} (${state.winner})`;
+                }
+            } else {
+                if (state.turn === mySymbol) {
+                    status.textContent = `🎯 TWOJA KOLEJ ${state.nicks[mySymbol]} (${mySymbol})`;
+                } else {
+                    status.textContent = `⏳ Kolej przeciwnika ${state.nicks[state.turn]} (${state.turn})`;
+                }
+            }
+        }
+
+        async function makeMove(pos) {
+            // Blokuj kliknięcie jeśli nie twoja kolej
+            if (currentTurn !== mySymbol) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/move', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({symbol: mySymbol, pos})
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    alert(err.error);
+                }
+            } catch (e) {
+                alert('Błąd: ' + e);
+            }
+        }
+
+        async function reset() {
+            await fetch('/api/reset', {method: 'POST'});
+            location.reload();
+        }
+    </script>
+</body>
+</html>

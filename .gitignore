@@ -1,0 +1,19 @@
+# Konfiguracje wrażliwe
+smtp_config.py
+ftp_config.py
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Logi gier
+game_logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Wirtualne środowisko
+.venv/
