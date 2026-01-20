@@ -1,19 +1,39 @@
 # Konfiguracje wrażliwe
 smtp_config.py
 ftp_config.py
+.env
 
 # Python cache
 __pycache__/
 *.pyc
 *.pyo
+*.py[cod]
+*$py.class
 
 # Logi gier
 game_logs/
+
+# Baza danych
+*.db
+*.sqlite
+*.sqlite3
 
 # IDE
 .vscode/
 .idea/
 *.swp
+*.swo
+*~
+.DS_Store
 
 # Wirtualne środowisko
 .venv/
+venv/
+ENV/
+env/
+
+# Docker volumes
+postgres_data/
+
+# OS
+Thumbs.db

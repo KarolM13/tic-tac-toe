@@ -1,0 +1,42 @@
+# Docker Compose - Aplikacja + PostgreSQL
+
+services:
+  # Baza danych PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: tictactoe_db
+    environment:
+      POSTGRES_USER: tictactoe_user
+      POSTGRES_PASSWORD: tictactoe_pass
+      POSTGRES_DB: tictactoe_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tictactoe_user -d tictactoe_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Aplikacja Flask
+  app:
+    build: .
+    container_name: tictactoe_app
+    environment:
+      DATABASE_URL: postgresql://tictactoe_user:tictactoe_pass@postgres:5432/tictactoe_db
+    ports:
+      - "5555:5555"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+      - 1.1.1.1
+
+volumes:
+  postgres_data:

@@ -77,6 +77,24 @@
         .cell.o { color: #4ecdc4; }
         .hidden { display: none !important; }
         .info { text-align: center; margin-top: 15px; font-size: 0.9em; opacity: 0.8; }
+        .quote-box {
+            background: rgba(255,255,255,0.15);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+            font-style: italic;
+            border-left: 4px solid #4CAF50;
+        }
+        .quote-text {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        .quote-loading {
+            opacity: 0.7;
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
@@ -97,6 +115,7 @@
             <div class="status" id="status"></div>
             <div class="info" id="playersInfo" style="margin-bottom: 15px;"></div>
             <div class="board" id="board"></div>
+            <div id="quoteBox" class="quote-box hidden"></div>
             <button onclick="reset()" class="hidden" id="resetBtn">Nowa gra</button>
         </div>
     </div>
@@ -160,6 +179,7 @@
                     if (state.over) {
                         clearInterval(interval);
                         document.getElementById('resetBtn').classList.remove('hidden');
+                        loadQuote(); // Pobierz cytat po zakończeniu gry
                     }
                 }
             } catch (e) {
@@ -240,6 +260,31 @@
         async function reset() {
             await fetch('/api/reset', {method: 'POST'});
             location.reload();
+        }
+
+        async function loadQuote() {
+            const quoteBox = document.getElementById('quoteBox');
+            quoteBox.classList.remove('hidden');
+            quoteBox.innerHTML = '<div class="quote-loading">💭 Ładowanie inspirującej rady...</div>';
+            
+            try {
+                const res = await fetch('/api/quote');
+                const data = await res.json();
+                
+                console.log('Quote API response:', data); // Debug
+                
+                if (data.ok && data.quote) {
+                    quoteBox.innerHTML = `
+                        <div class="quote-text">"${data.quote}"</div>
+                        <div style="opacity: 0.7; font-size: 0.9em;">💡 Advice Slip API</div>
+                    `;
+                } else {
+                    quoteBox.innerHTML = '<div class="quote-loading">❌ Nie udało się pobrać cytatu</div>';
+                }
+            } catch (e) {
+                console.error('Quote error:', e); // Debug
+                quoteBox.innerHTML = '<div class="quote-loading">❌ Błąd pobierania cytatu</div>';
+            }
         }
     </script>
 </body>

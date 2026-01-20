@@ -1,0 +1,39 @@
+# Pliki, które nie powinny być kopiowane do obrazu Docker
+
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+.env
+.venv
+venv/
+ENV/
+
+# Baza danych SQLite (używamy PostgreSQL w Docker)
+*.db
+game_logs/
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Dokumentacja (opcjonalnie)
+*.md
